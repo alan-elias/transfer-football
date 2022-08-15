@@ -1,12 +1,18 @@
+### Libraries ----
+
 library(dplyr) 
 library(janitor)
 library(readr) 
 library(stringi)
 library(stringr)
 library(lubridate)
+library(ggplot2)
+library(caret)
+#library(factoextra)
+
+### Cleaning ----
 
 options(scipen = 999)
-
 players <- read.csv('https://raw.githubusercontent.com/alan-elias/transfer-football/updates/r-code/basic_info.csv',
                     sep = ",", encoding = "UTF-8") %>% 
   clean_names()
@@ -41,7 +47,7 @@ fifa22 <- fifa22 %>% relocate(c("wage", "value"),.after = goalkeeping_diving)
 
 rm(players, players_join)
 
-### Cleaning ----
+
 fifa22 <- fifa22 %>% 
   mutate(position = case_when(player_positions == "GK" ~ "GK",
                               str_detect(player_positions, "CB") ~ "CB",
@@ -80,9 +86,9 @@ fifa22$preferred_foot <- if_else(fifa22$preferred_foot == "Right", 1, 2)
 
 fifa22 <- fifa22 %>% relocate(c("position", "first_11"),.after = goalkeeping_diving)
 
-### Tables and Graphics ----
+### EDA ----
 
-pallete <- colorRampPalette(c("seagreen", "cian"))
+pallete <- grDevices::colorRampPalette(c("seagreen", "skyblue"))
 cores <- pallete(7)
 
 
@@ -129,8 +135,13 @@ fifa22 %>%
 fifa22 %>% 
   group_by(first_11) %>%
   # filter(Overall >= 75) %>%
-  summarise(Salario=mean(wage),
-            Valor=mean(value)) 
+  summarise(Salario=mean(wage, na.rm=T),
+            Valor=mean(value, na.rm=T)) 
+fifa22 %>% 
+  group_by(position) %>%
+  # filter(Overall >= 75) %>%
+  summarise(Salario=mean(wage, na.rm=T),
+            Valor=mean(value, na.rm=T)) 
 
 fifa22 %>% 
   group_by(first_11) %>%
@@ -147,7 +158,7 @@ fifa22 %>%
   summarise(PeFraco=mean(weak_foot)) %>% 
   ggplot(aes(x=position, y=PeFraco))+
   geom_col(fill = cores)+
-  labs(y = "Pé Fraco", x = "positionição",
+  labs(y = "Pé Fraco", x = "Posição",
        caption = "Fonte: Dados do FIFA 22")+
   coord_cartesian(ylim = c(2,3.25))+
   theme_bw()
@@ -157,7 +168,7 @@ fifa22 %>%
   summarise(MovHab=mean(skill_moves)) %>% 
   ggplot(aes(x=position, y=MovHab))+
   geom_col(fill = cores)+
-  labs(y = "Movimentos de Habilidade", x = "positionição",
+  labs(y = "Movimentos de Habilidade", x = "Posição",
        caption = "Fonte: Dados do FIFA 22")+
   coord_cartesian(ylim = c(1,3))+
   theme_bw()
@@ -168,7 +179,7 @@ fifa22 %>%
   summarise(reputation=mean(international_reputation)) %>% 
   ggplot(aes(x=position, y=reputation))+
   geom_col(fill = cores)+
-  labs(y = "Reputação Internacional", x = "positionição",
+  labs(y = "Reputação Internacional", x = "Posição",
        caption = "Fonte: Dados do FIFA 22")+
   coord_cartesian(ylim = c(1,3))+
   theme_bw()
@@ -179,7 +190,7 @@ fifa22 %>%
   ggplot(aes(x=position, y=age))+
   geom_boxplot(fill = cores)+
   coord_flip()+
-  labs(y = "Idade", x = "positionição",
+  labs(y = "Idade", x = "Posição",
        caption = "Fonte: Dados do FIFA 22")+
   theme_bw()
 
@@ -187,7 +198,7 @@ fifa22 %>%
   group_by(position) %>%
   ggplot(aes(x=position, y=height_cm))+
   geom_violin()+
-  labs(y = "Altura (cm)", x = "positionição")+
+  labs(y = "Altura (cm)", x = "Posição")+
   theme_bw()
 
 
@@ -199,13 +210,13 @@ fifa22 %>%
   geom_bar(stat = "identity")+
   labs(y = "", x = "")+
   theme_bw()+
-  theme(legend.positionition = "bottom")
+  theme(legend.position = "bottom")
 
 fifa22 %>% 
   group_by(position) %>%
   ggplot(aes(x=position, y=weight_kg))+
   geom_violin(scale = "width")+
-  labs(y = "Peso (kg)", x = "positionição")+
+  labs(y = "Peso (kg)", x = "Posição")+
   theme_bw()
 
 fifa22 %>% 
@@ -226,14 +237,66 @@ fifa22 %>%
 #theme(element_text(size = 14))
 
 
-library(GGally)
-
+#library(GGally)
 # Cria grafico
 fifa22[13:18] %>%
-  ggpairs(columns = 6:2, ggplot2::aes(colour=fifa22$position))+
+  GGally::ggpairs(columns = 6:2, ggplot2::aes(colour=fifa22$position))+
   theme_bw()
 
-### Model ----
-# fifa_model <- fifa22 %>% 
-#   select()
 
+
+
+### Model ----
+fifa_model <- fifa22 %>%
+  select(sofifa_id, age, height_cm, weight_kg, preferred_foot, international_reputation,
+         pace, shooting, passing, dribbling, defending, physic, attacking_heading_accuracy,
+         goalkeeping_diving, first_11, wage, value)
+fifa_model <- na.omit(fifa_model)
+fifa_scale <- data.frame(scale(fifa_model[-1]))
+fifa_scale <- na.omit(fifa_scale)
+factoextra::fviz_nbclust(fifa_scale, kmeans ,method = "wss") +
+  geom_vline(xintercept = 7, linetype = 2)
+
+set.seed(123)
+k <- kmeans(fifa_scale, 7)
+#factoextra::fviz_cluster(k, fifa_scale)
+
+result <- cbind(fifa_scale, cluster = k$cluster)
+table(result$cluster)
+
+result2 <- cbind(sofifa_id = fifa_model$sofifa_id, result, wage_real = fifa_model$wage, value_real = fifa_model$value)
+result_join <- inner_join(fifa22, result2[,c(1,18)], by = "sofifa_id")
+cluster1_join<-result_join %>% filter(.,cluster==1)
+
+
+cluster1<-result2 %>% filter(.,cluster==1)
+cluster2<-result2 %>% filter(.,cluster==2) 
+cluster3<-result2 %>% filter(.,cluster==3) 
+cluster4<-result2 %>% filter(.,cluster==4) 
+cluster5<-result2 %>% filter(.,cluster==5) 
+cluster6<-result2 %>% filter(.,cluster==6) 
+cluster7<-result2 %>% filter(.,cluster==7) 
+
+summary(cluster1$value_real)
+summary(cluster2$value_real)
+summary(cluster3$value_real)
+summary(cluster4$value_real)
+summary(cluster5$value_real)
+summary(cluster6$value_real)
+summary(cluster7$value_real)
+
+ggplot(data=result2,aes(x="",y=value_real))+
+  geom_boxplot()+xlab("")+ylab("")+
+  geom_jitter(alpha = 0.1, width = 0.2,colour="red")+
+  facet_wrap(.~cluster,scales = 'free') +theme_minimal()
+
+ggplot(data=result2,aes(x=value_real,y=..density..))+
+  geom_density(fill="red",colour="red",alpha = 0.2)+
+  xlab("")+ylab("")+
+  facet_wrap(.~cluster,scales = 'free') +theme_minimal()
+
+
+# gap_stat <- cluster::clusGap(fifa_scale, FUN = kmeans, nstart = 25,
+#                     K.max = 10, B = 10)
+# print(gap_stat, method = "firstmax")
+# factoextra::fviz_gap_stat(gap_stat)
