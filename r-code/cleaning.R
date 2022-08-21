@@ -30,13 +30,14 @@ players$wage <- players$wage * players$UnityW
 
 fifa22 <- read.csv("https://raw.githubusercontent.com/alan-elias/transfer-football/updates/r-code/players_22.csv",
                    sep = ",", encoding = "UTF-8") %>% 
-  select("sofifa_id","short_name","player_positions", "dob", "height_cm", "weight_kg", "club_position", 
-         "club_loaned_from","club_joined", "preferred_foot","international_reputation", "pace", "shooting", 
-         "passing","dribbling","defending","physic", "attacking_heading_accuracy","goalkeeping_diving")
+  select("sofifa_id","short_name","player_positions", "dob", "height_cm", "weight_kg","overall", "potential",
+         "club_position", "club_loaned_from","club_joined", "preferred_foot","international_reputation", 
+         "pace", "shooting", "passing","dribbling","defending","physic", "attacking_heading_accuracy",
+         "goalkeeping_diving", "weak_foot")
 
 players_join <- players %>% select("sofifa_id", "value", "wage")
 fifa22 <- right_join(players_join, fifa22, by = "sofifa_id") 
-fifa22 <- fifa22 %>% relocate(c("wage", "value"),.after = goalkeeping_diving)
+fifa22 <- fifa22 %>% relocate(c("wage", "value"),.after = weak_foot)
 
 rm(players, players_join)
 
