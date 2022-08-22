@@ -1,9 +1,9 @@
-library(dplyr)
+pacman::p_load(ggplot2, dplyr, egg, GGally)
 
 options(scipen = 999)
 
 ### EDA ----
-
+load(".RData")
 pallete <- grDevices::colorRampPalette(c("seagreen", "skyblue"))
 cores <- pallete(7)
 
@@ -158,3 +158,28 @@ fifa22 %>%
 fifa22[13:18] %>%
   GGally::ggpairs(columns = 6:2, ggplot2::aes(colour=fifa22$position))+
   theme_bw()
+
+
+ggplot(fifa22)+
+  aes(x=value)+
+  geom_density(col = "black", 
+                 fill = cores[4], 
+                 alpha = .5, 
+                 aes(y=..density..), 
+                 bins = 20)+
+  # stat_function(fun = dnorm, args = list(mean = mean(fifa22$value, na.rm = T), sd = sd(fifa22$value, na.rm = T)))+
+  labs(x = "Valor")+
+  theme_article()
+
+
+ggplot(fifa22)+
+  aes(x=log(value))+
+  geom_density(col = "black", 
+                 fill = cores[4], 
+                 alpha = .5, 
+                 aes(y=..density..), 
+                 bins = 20)+
+  # stat_function(fun = dnorm, 
+  #               args = list(mean = log(mean(fifa22$value, na.rm = T)), sd = log(sd(fifa22$value,  na.rm = T))))+
+  labs(x = "log(Valor)")+
+  theme_article()

@@ -61,14 +61,29 @@ fifa22$first_11 <- if_else(fifa22$first_11 == "TRUE", 1, 0)
 # str_extract(fifa22$short_name, "[A-Z\\.]+")
 
 # Recode positions
+# fifa22$position <- recode(fifa22$position,
+#                           "GK" = "Goleiro",
+#                           "CB" = "Zagueiro",
+#                           "FB" = "Lateral",
+#                           "MID" = "Meio-Campo",
+#                           "ATT_MID" = "Meia-Atacante",
+#                           "WING" = "Ponta",
+#                           "ST" = "Atacante")
 fifa22$position <- recode(fifa22$position,
                           "GK" = "Goleiro",
-                          "CB" = "Zagueiro",
-                          "FB" = "Lateral",
+                          "CB" = "Defensor",
+                          "FB" = "Defensor",
                           "MID" = "Meio-Campo",
-                          "ATT_MID" = "Meia-Atacante",
-                          "WING" = "Ponta",
+                          "ATT_MID" = "Atacante",
+                          "WING" = "Atacante",
                           "ST" = "Atacante")
+
+fifa22$team_position <- recode(fifa22$position,
+                               "Goleiro" = 1,
+                               "Defensor" = 2,
+                               "Meio-Campo" = 3,
+                               "Atacante" = 4)
+fifa22 <- fifa22 %>% relocate(team_position, .after = position)
 #Age
 fifa22$dob <- ymd(fifa22$dob)
 fifa22$age <- as.numeric(trunc((Sys.Date() - fifa22$dob)/360))
