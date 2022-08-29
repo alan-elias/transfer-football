@@ -56,7 +56,10 @@ ggplot(data=result2,aes(x=value_real,y=..density..))+
 # factoextra::fviz_gap_stat(gap_stat)
 
 # Model ----
-load(".RData")
+fifa22 <- read.csv('https://raw.githubusercontent.com/alan-elias/transfer-football/updates/r-code/sofifa.csv',
+                   sep = ";", encoding = "UTF-8")
+
+
 fifa_model <- fifa22 %>%
   select(sofifa_id, age, height_cm, weight_kg, potential, international_reputation,
          weak_foot, team_position, shooting, passing, dribbling, defending, physic, 
