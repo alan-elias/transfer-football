@@ -9,6 +9,8 @@ fifa22 <- read.csv('https://raw.githubusercontent.com/alan-elias/transfer-footba
 fifa22[4085,c(4,16)] <- c("Atacante", 4)
 fifa22$team_position <- as.numeric(fifa22$team_position)
 
+# fifa_names <- c()
+
 pallete <- grDevices::colorRampPalette(c("seagreen", "skyblue"))
 pallete <- grDevices::colorRampPalette(c("violet", "palevioletred4"))
 cores <- pallete(4)
@@ -17,11 +19,14 @@ theme_set(theme_article(base_size = 12))
 cores <- c("#F77A2F", "#D4B128", "#28D493", "#227AF5")
 
 fifa22 %>% 
-  group_by(position) %>% 
+  group_by(position) %>%
+  filter(ova < 75) %>% 
   summarise(Media=mean(age),
             Mediana=median(age),
             Dp = sd(age),
             Var = var(age))
+
+fifa22
 
 fifa22 %>% 
   group_by(position) %>% 
@@ -78,9 +83,18 @@ fifa22 %>%
   group_by(position) %>%
   ggplot(aes(x=position, y=age))+
   geom_boxplot(fill = cores)+
-  # coord_flip()+
+  coord_flip()+
   labs(y = "Idade", x = "Posição",
-       caption = "Fonte: Dados do FIFA 22")
+       caption = "Fonte: Dados do FIFA 22")+
+  geom_vline(xintercept = mean(fifa22$age), linetype="dashed")
+
+fifa22 %>%
+  ggplot(aes(x=age))+
+  geom_histogram(fill= "palevioletred", colour = "white")+
+  labs(x = "Idade", y = "")+
+  coord_cartesian(xlim = c(15,40))+
+  geom_vline(xintercept = mean(fifa22$age), linetype="dashed")
+
 
 fifa22 %>% 
   group_by(position) %>%
@@ -170,8 +184,13 @@ fifa_corr <- fifa22 %>%
 
 # knitr::kable(cor(fifa_corr))
 pairs(value~. , data = fifa_corr)
+names(fifa_corr) <-  c("idade", "altura", "peso", "potencial", "reputacao", "pe_fraco",
+                       "posicao", "chute", "passe", "drible", "salario", "valor")
 
 m <- cor(fifa_corr)
+corrplot(m, type = "full", tl.cex = .65, tl.pos = "dt", tl.srt = 0, diag = F,
+         order = "FPC", tl.col = "black", method = "number", number.digits = 2, number.cex = .9,
+         addshade = c("negative", "positive", "all"))
 corrplot(m, order = "hclust", addrect = 3, tl.pos = "d", tl.cex = .65)
 # car::spm(~.|team_position, data = fifa_corr)
 
@@ -235,3 +254,10 @@ fifa22 %>%
   geom_vline(xintercept = mean(fifa22$phy), linetype="dashed")+
   labs(x="Físico", y="")+
   theme_article()
+
+mean(fifa22$pac)
+mean(fifa22$sho)
+mean(fifa22$pas)
+mean(fifa22$dri)
+mean(fifa22$def)
+mean(fifa22$phy)
